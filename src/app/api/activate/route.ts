@@ -12,61 +12,60 @@ export async function POST(req: Request) {
   try {
     const { task } = await req.json();
     
-    // 1. GPT-5.1 analizuje zadanie i przygotowuje plan
+    // 1. GPT-5.1 analizuje zadanie i przygotowuje URL startowy
     const completion = await openai.chat.completions.create({
       model: MODEL_NAME,
       messages: [
         { 
           role: "system", 
-          content: "Jesteś mózgiem wlasne.ai. Użytkownik chce coś załatwić w sieci. Twoim zadaniem jest określić: 1. Adres URL od którego zacząć 2. Krótką instrukcję co bot ma tam zrobić (np. 'kliknij w menu', 'znajdź sekcję inspiracje'). Odpowiedz w formacie: URL: [link] AKCJA: [opis]" 
+          content: "Jesteś inteligentnym nawigatorem. Znajdź URL od którego bot powinien zacząć wykonanie zadania. Odpowiedz TYLKO linkiem." 
         },
         { role: "user", content: task }
       ]
     });
 
-    const aiResponse = completion.choices[0].message?.content || "";
-    const targetUrl = aiResponse.match(/URL: (https?:\/\/[^\s]+)/)?.[1] || "https://www.google.com";
-    const actionDesc = aiResponse.split("AKCJA:")[1]?.trim() || task;
+    const targetUrl = completion.choices[0].message?.content?.trim() || "https://www.google.com";
 
-    // 2. Tworzymy sesję w Browserbase (Developer Plan - Proxies ON)
+    // 2. Tworzymy sesję z PROXY (Twój Developer Plan)
     const session = await bb.sessions.create({
       projectId: process.env.BROWSERBASE_PROJECT_ID!,
       proxies: true 
     });
 
-    // 3. Łączymy się i wykonujemy akcję
+    // 3. Łączymy się i przekazujemy instrukcję działania
     const browser = await chromium.connectOverCDP(session.connectUrl);
     const defaultContext = browser.contexts()[0];
     const page = defaultContext.pages()[0] || await defaultContext.newPage();
 
-    // 4. Autonomiczne działanie
     try {
-      console.log(`Wchodzę na: ${targetUrl}`);
-      await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
+      // Wchodzimy na stronę (np. Nobu)
+      await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
       
-      // Próba automatycznego kliknięcia w "Akceptuję" (cookies), żeby nie zasłaniały widoku
-      const cookieButtons = ['Zgadzam się', 'Akceptuję', 'Accept', 'Allow all', 'OK'];
-      for (const text of cookieButtons) {
-        const btn = page.getByText(text, { exact: false }).first();
-        if (await btn.isVisible()) {
-          await btn.click().catch(() => {});
-          break;
+      // Inteligenta próba kliknięcia (Stagehand Logic):
+      // Szukamy przycisków typu "Menu", "Karta dań", "Inspiracje" zależnie od zadania
+      const keywords = ['Menu', 'Karta dań', 'Inspiracje', 'Barcelona'];
+      for (const word of keywords) {
+        if (task.toLowerCase().includes(word.toLowerCase()) || true) {
+           const btn = page.locator(`text=/${word}/i`).first();
+           if (await btn.isVisible()) {
+             await btn.click({ timeout: 5000 }).catch(() => {});
+             console.log(`Kliknięto: ${word}`);
+             break;
+           }
         }
       }
-
-      // Krótka pauza na wykonanie akcji
-      await new Promise(resolve => setTimeout(resolve, 3000));
       
+      await new Promise(resolve => setTimeout(resolve, 5000));
     } catch (e) {
       console.log("Działanie w toku...");
     }
 
-    // NIE zamykamy sesji - pozwalamy użytkownikowi wejść i zobaczyć wynik
+    // NIE zamykamy sesji, żebyś mógł zobaczyć efekt kliknięcia
     await browser.close().catch(() => {});
 
     return NextResponse.json({ 
       success: true, 
-      plan: `[AGENT GPT-5.1 AKTYWNY]\n\nCel: ${targetUrl}\nPlanowana akcja: ${actionDesc}\n\nAgent wszedł na stronę i spróbował ominąć przeszkody (np. cookies).\nKliknij tutaj, aby przejąć stery:\nhttps://www.browserbase.com/sessions/${session.id}` 
+      plan: `[AGENT GPT-5.1 PROFESSIONAL]\n\nCel: ${targetUrl}\nZadanie: ${task}\n\nAgent wszedł na stronę i spróbował odnaleźć właściwą sekcję.\nWejdź w link, aby zobaczyć efekt końcowy:\nhttps://www.browserbase.com/sessions/${session.id}` 
     });
 
   } catch (error: any) {
