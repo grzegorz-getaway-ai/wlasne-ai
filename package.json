@@ -12,7 +12,8 @@
     "react": "latest",
     "react-dom": "latest",
     "openai": "latest",
-    "lucide-react": "latest"
+    "lucide-react": "latest",
+    "@browserbasehq/sdk": "latest"
   },
   "devDependencies": {
     "typescript": "latest",
