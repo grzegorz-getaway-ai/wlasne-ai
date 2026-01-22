@@ -13,19 +13,19 @@ export async function POST(req: Request) {
   try {
     const { task } = await req.json();
     
-    // 1. GPT-5.1 planuje nawigację
+    // 1. GPT-5.1 planuje URL
     const completion = await openai.chat.completions.create({
       model: MODEL_NAME,
       messages: [
         { 
           role: "system", 
-          content: "Jesteś nawigatorem wlasne.ai. Jeśli użytkownik podał nazwę domeny (np. getaway.pl), stwórz URL bezpośredni. Jeśli podał ogólne zapytanie, stwórz URL do Google Search. Odpowiedz TYLKO linkiem." 
+          content: "Jesteś nawigatorem wlasne.ai. Jeśli użytkownik podał nazwę domeny (np. getaway.pl), stwórz URL bezpośredni. Jeśli nie, stwórz URL do wyszukiwarki. Odpowiedz TYLKO linkiem." 
         },
         { role: "user", content: task }
       ]
     });
 
-    const targetUrl = completion.choices[0].message?.content?.trim() || "https://www.google.com";
+    const targetUrl = completion.choices[0].message?.content?.trim() || "https://duckduckgo.com";
 
     // 2. Tworzymy sesję z PROXY (korzystając z Twojego Developer Planu)
     const session = await bb.sessions.create({
@@ -41,19 +41,20 @@ export async function POST(req: Request) {
     // 4. Wykonujemy nawigację
     try {
       await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
-      // Czekamy chwilę na render, abyś widział treść po wejściu w sesję
+      
+      // Symulujemy lekkie przewinięcie, żeby strona "ożyła" pod banerem cookies
+      await page.mouse.wheel(0, 500);
       await new Promise(resolve => setTimeout(resolve, 3000));
     } catch (e) {
-      console.log("Nawigacja zainicjowana pomyślnie.");
+      console.log("Nawigacja zainicjowana.");
     }
 
-    // 5. Zamykamy sterownik lokalny (Vercel)
-    // W Playwright na Browserbase to odłącza nas, ale sesja w chmurze żyje dalej
-    await browser.close();
+    // 5. NIE zamykamy sesji (brak browser.close() i disconnect())
+    // Dzięki temu sesja pozostanie w stanie "Running" w Twoim panelu.
 
     return NextResponse.json({ 
       success: true, 
-      plan: `[SYSTEM GPT-5.1 PROFESSIONAL]\n\nZadanie: ${task}\nCel: ${targetUrl}\n\nAgent wszedł na stronę i utrzymuje sesję. Możesz teraz przejąć kontrolę:\nhttps://www.browserbase.com/sessions/${session.id}` 
+      plan: `[SYSTEM GPT-5.1 DEVELOPER]\n\nZadanie: ${task}\nCel: ${targetUrl}\n\nAgent wszedł na stronę. Widzisz podgląd na żywo (prawdopodobnie baner cookies).\nMożesz teraz przejąć kontrolę i zamknąć cookies ręcznie lub kazać mi to zrobić w kolejnym kroku:\nhttps://www.browserbase.com/sessions/${session.id}` 
     });
 
   } catch (error: any) {
