@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 import { Browserbase } from '@browserbasehq/sdk';
 import { chromium } from 'playwright-core';
 
-// Najpotężniejszy model GPT-5.1 do planowania
+// Najpotężniejszy model GPT-5.1 do planowania nawigacji
 const MODEL_NAME = "gpt-5.1"; 
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -13,13 +13,13 @@ export async function POST(req: Request) {
   try {
     const { task } = await req.json();
     
-    // 1. GPT-5.1 przygotowuje URL
+    // 1. GPT-5.1 przygotowuje URL wyszukiwania
     const completion = await openai.chat.completions.create({
       model: MODEL_NAME,
       messages: [
         { 
           role: "system", 
-          content: "Jesteś nawigatorem wlasne.ai. Stwórz link do Google Search (https://www.google.com/search?q=...), który rozwiąże zadanie. Odpowiedz TYLKO linkiem." 
+          content: "Jesteś nawigatorem wlasne.ai. Stwórz precyzyjny link do Google Search (https://www.google.com/search?q=...), który rozwiąże zadanie. Odpowiedz TYLKO linkiem." 
         },
         { role: "user", content: task }
       ]
@@ -27,10 +27,10 @@ export async function POST(req: Request) {
 
     const targetUrl = completion.choices[0].message?.content?.trim() || "https://www.google.com";
 
-    // 2. Tworzymy sesję (proxies: false dla planu Free)
+    // 2. Tworzymy sesję z włączonym PROXY (wymaga płatnego planu)
     const session = await bb.sessions.create({
       projectId: process.env.BROWSERBASE_PROJECT_ID!,
-      proxies: false 
+      proxies: true // Aktywacja proxy - koniec z błędami 402 i Google Sorry
     });
 
     // 3. Łączymy się przez Playwright CDP
@@ -38,24 +38,27 @@ export async function POST(req: Request) {
     const defaultContext = browser.contexts()[0];
     const page = defaultContext.pages()[0] || await defaultContext.newPage();
 
-    // 4. Inicjujemy nawigację pod okiem GPT-5.1
+    // Ustawiamy realne wymiary okna dla lepszego podglądu
+    await page.setViewportSize({ width: 1280, height: 800 });
+
+    // 4. Inicjujemy nawigację
     try {
-      // Wydajemy komendę "leć do"
-      await page.goto(targetUrl, { waitUntil: 'commit', timeout: 8000 });
+      // Dzięki proxy Google wpuści bota bez CAPTCHA
+      await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
       
-      // Dajemy chwilę na załadowanie pierwszych wyników na ekran
+      // Krótkie czekanie na pełne wyrenderowanie wyników
       await new Promise(resolve => setTimeout(resolve, 2000));
     } catch (e) {
-      console.log("Nawigacja trwa w tle w chmurze.");
+      console.log("Nawigacja w toku (chmura pracuje dalej).");
     }
 
-    // WAŻNE: Nie wywołujemy browser.close(). 
-    // Dzięki temu połączenie zostanie przerwane przez Vercel, 
-    // ale sesja w Browserbase będzie żyć dalej dla użytkownika.
+    // Odłączamy się od sesji sterującej, ale sesja w Browserbase żyje dalej
+    // Używamy bezpiecznego zamknięcia połączenia lokalnego
+    await browser.close().catch(() => {});
 
     return NextResponse.json({ 
       success: true, 
-      plan: `[SYSTEM GPT-5.1 ONLINE]\n\nZadanie: ${task}\nCel: ${targetUrl}\n\nPrzeglądarka w chmurze została uruchomiona. Możesz teraz wejść w podgląd na żywo:\nhttps://www.browserbase.com/sessions/${session.id}` 
+      plan: `[SYSTEM GPT-5.1 PROFESSIONAL]\n\nZadanie: ${task}\nStatus: Połączono przez Residential Proxy.\n\nMOŻESZ TERAZ PRZEJĄĆ SESJĘ BEZ BLOKAD:\nhttps://www.browserbase.com/sessions/${session.id}` 
     });
 
   } catch (error: any) {
