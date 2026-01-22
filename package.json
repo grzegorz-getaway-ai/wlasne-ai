@@ -13,7 +13,8 @@
     "react-dom": "latest",
     "openai": "latest",
     "lucide-react": "latest",
-    "@browserbasehq/sdk": "latest"
+    "@browserbasehq/sdk": "latest",
+    "puppeteer-core": "latest"
   },
   "devDependencies": {
     "typescript": "latest",
