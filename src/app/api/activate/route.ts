@@ -3,6 +3,9 @@ import OpenAI from 'openai';
 import { Browserbase } from '@browserbasehq/sdk';
 import puppeteer from 'puppeteer-core';
 
+// Ustawiamy najpotężniejszy dostępny model: GPT-5.1
+const MODEL_NAME = "gpt-5.1"; 
+
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const bb = new Browserbase({ apiKey: process.env.BROWSERBASE_API_KEY! });
 
@@ -10,39 +13,46 @@ export async function POST(req: Request) {
   try {
     const { task } = await req.json();
     
-    // 1. Zamiast zgadywać URL, tworzymy precyzyjne zapytanie do Google
+    // 1. GPT-5.1 analizuje zadanie i tworzy strategię wyszukiwania
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: MODEL_NAME,
       messages: [
-        { role: "system", content: "Jesteś nawigatorem wlasne.ai. Stwórz link do wyszukiwarki Google, który najlepiej pomoże rozwiązać zadanie użytkownika. Odpowiedz TYLKO linkiem zaczynającym się od https://www.google.com/search?q=..." },
-        { role: "user", content: task }
-      ],
+        { 
+          role: "system", 
+          content: "Jesteś mózgiem wlasne.ai opartym na architekturze GPT-5.1. Twoim zadaniem jest przekształcenie prośby użytkownika w precyzyjny URL wyszukiwania Google, który pozwoli agentowi przeglądarkowemu znaleźć rozwiązanie. Odpowiedz TYLKO linkiem URL." 
+        },
+        { role: "user", content: `Zadanie: ${task}` }
+      ]
     });
 
     const targetUrl = completion.choices[0].message?.content?.trim() || "https://www.google.com";
 
-    // 2. Tworzymy sesję w Browserbase
+    // 2. Inicjalizacja sesji w Browserbase
     const session = await bb.sessions.create({
       projectId: process.env.BROWSERBASE_PROJECT_ID!,
     });
 
-    // 3. Łączymy się i wysyłamy bota na stronę wyników
+    // 3. Połączenie z sesją przez Puppeteer
     const browser = await puppeteer.connect({
       browserWSEndpoint: session.connectUrl,
     });
 
     const page = await browser.newPage();
     
-    // Ustawiamy krótki timeout, żeby Vercel nie zerwał połączenia
-    page.goto(targetUrl).catch(() => {}); 
+    // Ustawiamy User-Agent, żeby bot wyglądał jak prawdziwy człowiek na Macu
+    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
+    // Nawigacja do URL wygenerowanego przez GPT-5.1
+    // Nie czekamy na pełne załadowanie (networkidle), żeby uniknąć timeoutu na Vercel
+    page.goto(targetUrl, { waitUntil: 'domcontentloaded' }).catch(() => {}); 
 
     return NextResponse.json({ 
       success: true, 
-      plan: `[AGENT AKTYWNY]\n\nRozpoczynam poszukiwania dla: ${task}\n\nUruchomiłem przeglądarkę i otworzyłem wyniki wyszukiwania w Google.\nMożesz teraz kliknąć w poniższy link, aby zobaczyć jak bot pracuje:\nhttps://www.browserbase.com/sessions/${session.id}` 
+      plan: `[SYSTEM GPT-5.1 AKTYWNY]\n\nUruchomiono sesję dla zadania: ${task}\nWygenerowany URL: ${targetUrl}\n\nAgent właśnie wszedł do sieci. Możesz śledzić jego ruchy na żywo pod tym adresem:\nhttps://www.browserbase.com/sessions/${session.id}` 
     });
 
   } catch (error: any) {
-    console.error("Błąd backendu:", error.message);
+    console.error("Błąd krytyczny:", error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
