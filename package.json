@@ -8,13 +8,12 @@
     "start": "next start"
   },
   "dependencies": {
-    "next": "16.1.4",
+    "next": "15.1.4",
     "react": "latest",
     "react-dom": "latest",
     "openai": "latest",
     "lucide-react": "latest",
     "@browserbasehq/sdk": "latest",
-    "puppeteer-core": "latest",
     "playwright-core": "latest"
   },
   "devDependencies": {
