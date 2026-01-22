@@ -3,7 +3,6 @@ import OpenAI from 'openai';
 import { Browserbase } from '@browserbasehq/sdk';
 import { chromium } from 'playwright-core';
 
-// Najpotężniejszy model GPT-5.1 do planowania nawigacji
 const MODEL_NAME = "gpt-5.1"; 
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -13,13 +12,13 @@ export async function POST(req: Request) {
   try {
     const { task } = await req.json();
     
-    // 1. GPT-5.1 przygotowuje URL wyszukiwania
+    // 1. GPT-5.1 decyduje: czy to bezpośredni adres czy wyszukiwanie?
     const completion = await openai.chat.completions.create({
       model: MODEL_NAME,
       messages: [
         { 
           role: "system", 
-          content: "Jesteś nawigatorem wlasne.ai. Stwórz precyzyjny link do Google Search (https://www.google.com/search?q=...), który rozwiąże zadanie. Odpowiedz TYLKO linkiem." 
+          content: "Jesteś nawigatorem wlasne.ai. Jeśli użytkownik podał nazwę strony (np. getaway.pl), stwórz URL bezpośredni. Jeśli nie, stwórz URL do Google Search. Odpowiedz TYLKO linkiem." 
         },
         { role: "user", content: task }
       ]
@@ -27,10 +26,10 @@ export async function POST(req: Request) {
 
     const targetUrl = completion.choices[0].message?.content?.trim() || "https://www.google.com";
 
-    // 2. Tworzymy sesję z włączonym PROXY (wymaga płatnego planu)
+    // 2. Tworzymy sesję z PROXY (korzystamy z Twojego Developer Planu)
     const session = await bb.sessions.create({
       projectId: process.env.BROWSERBASE_PROJECT_ID!,
-      proxies: true // Aktywacja proxy - koniec z błędami 402 i Google Sorry
+      proxies: true 
     });
 
     // 3. Łączymy się przez Playwright CDP
@@ -38,31 +37,33 @@ export async function POST(req: Request) {
     const defaultContext = browser.contexts()[0];
     const page = defaultContext.pages()[0] || await defaultContext.newPage();
 
-    // Ustawiamy realne wymiary okna dla lepszego podglądu
-    await page.setViewportSize({ width: 1280, height: 800 });
+    // Ustawiamy polskie parametry, żeby bot widział polskie treści
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'pl-PL,pl;q=0.9'
+    });
 
     // 4. Inicjujemy nawigację
     try {
-      // Dzięki proxy Google wpuści bota bez CAPTCHA
+      // Idziemy pod wskazany adres (np. bezpośrednio na getaway.pl)
       await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
       
-      // Krótkie czekanie na pełne wyrenderowanie wyników
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Dajemy botowi 3 sekundy na załadowanie grafik i treści
+      await new Promise(resolve => setTimeout(resolve, 3000));
     } catch (e) {
-      console.log("Nawigacja w toku (chmura pracuje dalej).");
+      console.log("Nawigacja zainicjowana, bot pracuje w chmurze.");
     }
 
-    // Odłączamy się od sesji sterującej, ale sesja w Browserbase żyje dalej
-    // Używamy bezpiecznego zamknięcia połączenia lokalnego
-    await browser.close().catch(() => {});
+    // WAŻNE: Usunąłem browser.close(). Sesja zostaje otwarta w stanie "Running".
+    // Odłączamy się tylko lokalnie.
+    await browser.disconnect();
 
     return NextResponse.json({ 
       success: true, 
-      plan: `[SYSTEM GPT-5.1 PROFESSIONAL]\n\nZadanie: ${task}\nStatus: Połączono przez Residential Proxy.\n\nMOŻESZ TERAZ PRZEJĄĆ SESJĘ BEZ BLOKAD:\nhttps://www.browserbase.com/sessions/${session.id}` 
+      plan: `[SYSTEM GPT-5.1 DEVELOPER]\n\nZadanie: ${task}\nCel: ${targetUrl}\n\nAgent otworzył stronę i czeka na Ciebie. Sesja NIE zostanie zamknięta automatycznie.\n\nKLIKNIJ TUTAJ, ABY WEJŚĆ:\nhttps://www.browserbase.com/sessions/${session.id}` 
     });
 
   } catch (error: any) {
-    console.error("Błąd backendu:", error.message);
+    console.error("Błąd:", error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
