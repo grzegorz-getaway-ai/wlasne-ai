@@ -14,7 +14,8 @@
     "openai": "latest",
     "lucide-react": "latest",
     "@browserbasehq/sdk": "latest",
-    "puppeteer-core": "latest"
+    "playwright-core": "latest",
+    "@browserbasehq/stagehand": "latest"
   },
   "devDependencies": {
     "typescript": "latest",
