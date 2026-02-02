@@ -15,7 +15,8 @@
     "lucide-react": "latest",
     "@browserbasehq/sdk": "latest",
     "playwright-core": "latest",
-    "@browserbasehq/stagehand": "latest"
+    "@browserbasehq/stagehand": "latest",
+    "@supabase/supabase-js": "latest"
   },
   "devDependencies": {
     "typescript": "latest",
