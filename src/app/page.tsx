@@ -1,95 +1,72 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Settings2, Play, Database, BrainCircuit, Activity } from 'lucide-react';
+import { Plus, Settings2, Play, Database, BrainCircuit, Activity, X } from 'lucide-react';
 
 export default function WlasneAIDashboard() {
   const [showModal, setShowModal] = useState(false);
-  const [agents, setAgents] = useState([
-    { id: 1, name: 'Rezerwacje Restauracje', guidelines: 'Szukaj na Google Maps, wybieraj miejsca z oceną > 4.5', tools: 'Brak' },
+  const [agents] = useState([
+    { id: 1, name: 'Rezerwacje Restauracje', guidelines: 'Szukaj na Google Maps, wybieraj miejsca z oceną > 4.5', status: 'Gotowy' },
   ]);
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8 font-sans text-slate-900">
+    <div className="min-h-screen bg-[#f8fafc] p-4 md:p-12 text-[#1e293b]" style={{ fontFamily: 'sans-serif' }}>
       {/* Header */}
-      <header className="mb-12 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
-            <BrainCircuit className="text-blue-600" /> Własne AI
-          </h1>
-          <p className="text-slate-500">Zarządzaj swoimi autonomicznymi agentami</p>
-        </div>
-        <button 
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all shadow-sm"
-        >
-          <Plus size={20} /> Dodaj Własne AI
-        </button>
-      </header>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '48px' }}>
+          <div>
+            <h1 style={{ fontSize: '32px', fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <BrainCircuit color="#2563eb" size={36} /> Własne AI
+            </h1>
+            <p style={{ color: '#64748b', marginTop: '4px' }}>Twoje centrum dowodzenia agentami</p>
+          </div>
+          <button 
+            onClick={() => setShowModal(true)}
+            style={{ backgroundColor: '#2563eb', color: 'white', border: 'none', padding: '12px 24px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            <Plus size={20} /> Dodaj Własne AI
+          </button>
+        </header>
 
-      {/* Lista Agentów */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {agents.map((agent) => (
-          <div key={agent.id} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="font-bold text-lg text-slate-800">{agent.name}</h3>
-              <Settings2 size={18} className="text-slate-400 cursor-pointer hover:text-blue-600" />
-            </div>
-            <p className="text-sm text-slate-500 line-clamp-2 mb-6">{agent.guidelines}</p>
-            
-            <div className="flex items-center gap-3 mt-auto">
-              <button className="flex-1 flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-md text-sm font-medium transition-colors">
+        {/* Lista Agentów */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '24px' }}>
+          {agents.map((agent) => (
+            <div key={agent.id} style={{ backgroundColor: 'white', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{agent.name}</h3>
+                <Settings2 size={18} color="#94a3b8" style={{ cursor: 'pointer' }} />
+              </div>
+              <p style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.5', marginBottom: '24px', minHeight: '42px' }}>{agent.guidelines}</p>
+              <button style={{ width: '100%', backgroundColor: '#f1f5f9', border: 'none', padding: '10px', borderRadius: '8px', color: '#475569', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center', gap: '8px' }}>
                 <Play size={16} /> Otwórz & Komenda
               </button>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
-      {/* Modal Definicji AI (Wydmuszka) */}
+      {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-              <h2 className="text-xl font-bold">Definicja Własnego AI</h2>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ backgroundColor: 'white', width: '100%', maxWidth: '600px', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)' }}>
+            <div style={{ padding: '24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between' }}>
+              <h2 style={{ margin: 0 }}>Nowa Persona</h2>
+              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X /></button>
             </div>
-            
-            <div className="p-6 space-y-6">
-              <div>
-                <label className="block text-sm font-semibold mb-2 leading-none">Nazwa AI</label>
-                <input type="text" placeholder="np. Asystent Rezerwacji" className="w-full border border-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-semibold mb-2">Wytyczne (DNA bota)</label>
-                <textarea rows={4} placeholder="Jak ma się zachowywać? Na co zwracać uwagę?" className="w-full border border-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" />
-              </div>
-
-              <div className="bg-slate-50 p-4 rounded-lg border border-dashed border-slate-200">
-                <label className="flex items-center gap-2 text-sm font-semibold text-slate-400">
-                  <Database size={16} /> Narzędzia (Wkrótce)
-                </label>
-                <p className="text-xs text-slate-400 mt-1">Integracje z Whatsapp, Mail, Kalendarz...</p>
+            <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <input placeholder="Nazwa AI (np. Rezerwator)" style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+              <textarea placeholder="Wytyczne (Jak ma działać?)" rows={4} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+              <div style={{ padding: '16px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <span style={{ color: '#94a3b8', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}><Database size={14}/> Narzędzia: WhatsApp, Mail (Wkrótce)</span>
               </div>
             </div>
-
-            <div className="p-6 bg-slate-50 flex justify-end gap-3">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 text-slate-600 font-medium">Anuluj</button>
-              <button className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold shadow-blue-200 shadow-lg">Zapisz AI</button>
+            <div style={{ padding: '24px', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', color: '#64748b', fontWeight: '600', cursor: 'pointer' }}>Anuluj</button>
+              <button style={{ backgroundColor: '#2563eb', color: 'white', border: 'none', padding: '12px 32px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>Zapisz w Pamięci</button>
             </div>
           </div>
         </div>
       )}
-
-      {/* Pasek Stanu Organizmu */}
-      <footer className="fixed bottom-6 left-6 right-6 flex justify-center pointer-events-none">
-        <div className="bg-white shadow-2xl border border-slate-200 px-6 py-3 rounded-full flex items-center gap-8 text-xs font-medium text-slate-400 pointer-events-auto">
-           <div className="flex items-center gap-2 text-green-600"><Activity size={14}/> Układ krwionośny: OK</div>
-           <div className="flex items-center gap-2 text-blue-600"><BrainCircuit size={14}/> Mózg: GPT-5.1</div>
-           <div className="flex items-center gap-2 text-orange-600"><Settings2 size={14}/> Ręce: Browserbase</div>
-        </div>
-      </footer>
     </div>
   );
 }
